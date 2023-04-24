@@ -1,0 +1,66 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © Coolboycrypto
+//@version=5
+strategy("ema crossover", overlay = true, currency = currency.USDT, initial_capital = 1000)
+
+
+//input
+stopLossPct = input.int(2 , title= "Stop Loss Percentage" )
+
+
+
+
+// EMAs
+emaShort = ta.ema(close, 16)
+emaCross = ta.ema(close,52)
+emaLong = ta.ema(close, 124)
+emaNeutral = ta.ema(close, 214)
+
+
+
+// Conditions
+emaCrossOver = ta.crossover(emaShort, emaNeutral)
+emaCrossOver1 = ta.crossover(emaShort,emaCross)
+emaCrossUnder = ta.crossunder(emaShort, emaNeutral)
+emaCrossUnder1 = ta.crossunder(emaShort,emaCross)
+emaCrossUnderLongExit = ta.crossunder(emaShort, emaCross)
+emaCrossOverShortExit = ta.crossover(emaShort, emaCross)
+
+
+
+
+// Entry and exit signals
+longCondition = emaCrossOver or emaCrossOver1
+exitLongCondition = emaCrossUnderLongExit
+shortCondition = emaCrossUnder or emaCrossUnder1
+exitShortCondition = emaCrossOverShortExit
+stopLossPrice = strategy.position_avg_price*(1-stopLossPct/100)
+stopLossPriceShort = strategy.position_avg_price*(1+stopLossPct/100)
+
+
+// Orders
+if longCondition and strategy.position_size == 0 and (emaShort>emaNeutral or emaCross>emaNeutral)
+    strategy.entry("Long",direction= strategy.long)
+
+if exitLongCondition and strategy.position_size > 0
+    strategy.close("Long")
+
+if strategy.position_size > 0
+    strategy.exit("Stop Loss" , "Long", stop= stopLossPrice)
+
+if shortCondition and strategy.position_size == 0 and (emaShort<emaNeutral or emaCross<emaNeutral )
+    strategy.entry("Short", direction= strategy.short)
+
+if exitShortCondition and strategy.position_size <0
+    strategy.close("Short")
+
+if strategy.position_size < 0
+    strategy.exit("Stop Loss Short", "Short" ,stop= stopLossPriceShort )
+
+
+
+// Plotting
+plot(emaShort, color=color.green, title="EMA 1")
+plot(emaLong, color=color.red, title="EMA 2")
+plot(emaCross,color = color.purple, title = "EMA 3")
+plot(emaNeutral,color = color.yellow,title="EMA 4", linewidth = 3)
